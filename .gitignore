@@ -1,0 +1,23 @@
+# 环境变量（LLM 密钥）— 禁止提交
+.env
+
+# 运行时产物
+audit/
+audit_log.jsonl
+incidents.jsonl
+__pycache__/
+*.pyc
+
+# mock 环境运行时状态
+mockenv/run/
+mockenv/state/
+mockenv/logs/
+mockenv/config/*.conf.bak
+
+# 调试日志（本地排查用，不提交）
+*_full_test_run.log
+test_run.log
+_*.log
+
+# 生成的数据文件（python -m selfheal.cli dashboard-data 生成）
+dashboard_data.js
