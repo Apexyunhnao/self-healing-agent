@@ -973,7 +973,7 @@ def render_report(results: list, mode: str, dataset_label: str,
         else:
             cost = "$0"
         lines.append(f"LLM: repair {iv_repair:+d}pp, correct handling {iv_handling:+d}pp, "
-                     f"MTTR {mttr_diff}, cost {cost} → 默认关闭（可选实验模块）")
+                     f"MTTR {mttr_diff}, cost {cost} → 推荐 Rule-only 运行（LLM 保留为可选模块）")
         lines.append("")
 
     return "\n".join(lines)
@@ -996,6 +996,8 @@ def main() -> None:
                         help="每场景重复次数，指标按累计口径统计（默认 1）")
     parser.add_argument("--diagnoser", choices=["rule", "llm"], default="rule",
                         help="诊断器模式（默认 rule）")
+    parser.add_argument("--out", default=None,
+                        help="报表输出路径（默认 eval/eval_report.md）；同目录写同名 .json 机器可读快照")
     args = parser.parse_args()
     if args.runs < 1:
         parser.error("--runs 必须 >= 1")
@@ -1021,17 +1023,36 @@ def main() -> None:
         llm_results = run_batch(subset, "llm", args.runs)
         llm_calls = read_llm_calls()[pre_calls:]  # 只统计本批次新增的调用
         rule_metrics = compute_metrics(rule_results)
+        llm_metrics = compute_metrics(llm_results)
         text = render_report(llm_results, "llm", label, rule_metrics, rule_results,
                              runs=args.runs, llm_calls=llm_calls)
     else:
         results = run_batch(subset, "rule", args.runs)
-        rule_metrics = None
+        rule_metrics = compute_metrics(results)
+        llm_metrics = None
         text = render_report(results, "rule", label, runs=args.runs)
 
-    REPORT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT.write_text(text, encoding="utf-8")
+    out_path = Path(args.out) if args.out else REPORT
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(text, encoding="utf-8")
+
+    # 机器可读快照：唯一数字来源（README / 简历只引用这里，禁止手写数字）
+    snapshot = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "diagnoser_mode": args.diagnoser,
+        "scenario_set": label,
+        "runs": args.runs,
+        "seed": SEED,
+        "report_file": out_path.name,
+        "rule": rule_metrics,
+        "llm": llm_metrics,
+    }
+    json_path = out_path.with_suffix(".json")
+    json_path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+
     print("\n" + text)
-    print(f"\n[eval] 报表已写入 {REPORT}")
+    print(f"\n[eval] 报表已写入 {out_path}")
+    print(f"[eval] 机器可读快照已写入 {json_path}")
 
     # 收尾：确认环境无残留
     cleanup_all()

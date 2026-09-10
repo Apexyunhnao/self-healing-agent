@@ -179,7 +179,7 @@ class TestRenderReportSections(unittest.TestCase):
         self.assertIn("估算成本", text)
         # 结论区：LLM 与 Rule 一致 → repair +0pp，cost >0 → 默认关闭
         self.assertIn("repair +0pp", text)
-        self.assertIn("默认关闭", text)
+        self.assertIn("推荐 Rule-only", text)
 
     def test_llm_no_key_shows_degradation_note(self):
         results = [_mk("f1", cls="repaired", dur=4.0)]

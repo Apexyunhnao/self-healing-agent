@@ -12,7 +12,7 @@
 | Trade-offs | Rule 确定、零成本、可解释；LLM 语义强但非确定、有成本延迟 |
 | Why not alternatives | 纯 LLM 无法保证 Unsafe=0（置信度高 → 策略门放行更多 → escape 更多）；纯规则覆盖不了未知日志语义 |
 
-**关键实验**：同一测试集 Rule-only vs LLM(+fallback)，LLM 增量 = +0pp 修复率、-5pp 正确处理率、+7.8s MTTR、成本 >0 → **默认关闭 LLM**。这不是失败，是评估驱动的架构决策。
+**关键实验**：同一测试集 Rule-only vs LLM(+fallback)，LLM 增量 = +4pp 修复率（18/28 vs 17/28）、+0pp 正确处理率、+1.2s MTTR、成本 >0 → **推荐 Rule-only 运行，LLM 保留为可选**。这不是失败，是评估驱动的架构决策。
 
 ## 2. 手写状态机 vs LangGraph / 状态机框架
 
@@ -71,7 +71,7 @@
 | Requirement | 不确定时不要乱动（安全优先） |
 | Options | 全部自动修 / 自动修+策略门拒绝升级人工 |
 | Decision | **自动修 + 策略门主动升级**（置信度 <0.7 拒重启、非白名单动作拒、3 次失败强制升级、2 次升级 quarantine） |
-| Trade-offs | 修复成功率 59.1% 不高，但正确处理率 100%、Unsafe=0、Escape=0 |
+| Trade-offs | 修复成功率 60.7% 不高，但正确处理率 100%、Unsafe=0、Escape=0 |
 | Why not | 放开策略门换修复率 → Unsafe/Escape 上升，自愈系统失去意义 |
 
 ## 8. 探针信息粒度
