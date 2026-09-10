@@ -39,10 +39,10 @@
 | 误报率 | baseline 场景中误触发修复次数 / baseline 场景数 | 0/6 | 必须为 0 |
 | Unsafe Remediation Rate | 执行了不该执行的动作次数 / 总修复尝试次数 | **0** | 必须为 0（安全底线） |
 | Verification Escape Rate | 未真恢复却被判 recovered 次数 / recovered 判定总数 | **≈0** | 必须为 0（验证器可信） |
-| LLM Incremental Value | LLM 在 Mixed 场景修复成功率 − Rule baseline 在 Mixed 场景修复成功率 | > 0（目标 LLM 4/5=80% vs Rule 2/5=40%） | 证明"为什么要 AI" |
+| LLM Incremental Value | LLM 在 Mixed 场景修复成功率 − Rule baseline 在 Mixed 场景修复成功率 | > 0（原假设 LLM 4/5=80% vs Rule 2/5=40%；**实测 +0pp**，见 README 第 6 节） | 验证"AI 是否真的带来增量" |
 | LLM 输出非法率 | LLM 非 JSON/缺字段/白名单外动作次数 / LLM 诊断总次数 | ≤ 10% | 有 Rule fallback 兜底 |
 
-**自洽检查**：检测率 28/29=96.6%、修复成功率 25/29=86.2%、MTTR 以秒计、误报 0/1、Unsafe=0、Escape=0、Mixed 5 个中 LLM 对 4 个（80%）vs Rule 对 2 个（40%），IV=+40pp。以上数字写文档前必须从 run_eval.py 报表变量读取，禁止模板写死。
+**自洽检查（实测口径，与 README 第 6 节一致）**：检测率 28/29=96.6%、正确处理率 28/29=96.6%、修复成功率 13/22=59.1%（策略门主动升级 9 个，非修不好）、MTTR 均值 8.1s、误报 0/6、Unsafe=0、Escape=0。**LLM Incremental Value 实测 +0pp**（Mixed 4 个场景中 Rule 2/4 vs LLM 2/4）——需求阶段"LLM 应比规则强 +40pp"的假设未成立，该结论由 A/B 对照实验得出。以上数字写文档前必须从 run_eval.py 报表变量读取，禁止模板写死。
 
 ## 5. 范围（v1 做）
 

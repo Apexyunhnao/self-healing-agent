@@ -21,3 +21,5 @@ _*.log
 
 # 生成的数据文件（python -m selfheal.cli dashboard-data 生成）
 dashboard_data.js
+# 面试准备文档不入库（只留本地 E:\面试准备\）
+docs/interview-prep.md

@@ -203,5 +203,4 @@ python -m selfheal.cli dashboard-data
 ```
 
 技术选型与 trade-off：见 [docs/tech_selection.md](docs/tech_selection.md)  
-面试准备：见 [docs/interview-prep.md](docs/interview-prep.md)  
 开发日志：见 [docs/dev-log.md](docs/dev-log.md)
