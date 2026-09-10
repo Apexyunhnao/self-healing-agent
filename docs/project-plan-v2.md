@@ -192,7 +192,7 @@ retry ──超 budget(3次)──▶ escalated → awaiting_human（quarantine 
 - 选项 A：保持功能名 "Local Service Self-Healing Agent"（直白，简历/面试零歧义）
 - 选项 B：加代号 "Aegis Local" / "Heimdall"（更亮，但面试官要先对应"为什么叫这个"）
 - 选项 C：用定位句式做副标题："LLM-assisted Self-Healing Orchestrator"（ChatGPT 建议的定位，作为一句话介绍而非主名）
-- 羔丸倾向：**主名用 A（直白）+ README 副标题用 C（亮）**。简历不绕弯子，深度靠内容不靠名字。
+- 决策倾向：**主名用 A（直白）+ README 副标题用 C（亮）**。简历不绕弯子，深度靠内容不靠名字。
 
 ## 14. 待办清单（下一步）
 

@@ -1,6 +1,6 @@
 # Claude Code 指令 03 —— 阶段 2：确定性核心模块（probe / executor / verifier）
 
-> 复制下面「指令正文」全部内容给 Claude Code（终端版）。本任务由羔丸直接用 CLI 后台执行，用户只需看结果。
+> 复制下面「指令正文」全部内容给 Claude Code（终端版）。本任务由开发者在 CLI 后台执行，只需看结果。
 
 ---
 

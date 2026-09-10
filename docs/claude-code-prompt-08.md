@@ -1,6 +1,6 @@
 # Claude Code 指令 08 —— 阶段 5：CLI + 审计查看 + Incident Dashboard + 真实服务只读监控
 
-> 复制下面「指令正文」给 Claude Code（终端版）。本任务由羔丸用 CLI 后台执行。
+> 复制下面「指令正文」给 Claude Code（终端版）。本任务由开发者在 CLI 后台执行。
 
 ---
 
