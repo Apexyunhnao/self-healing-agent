@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    # 用 windows-2022 而不是 windows-latest：项目按命令行匹配进程依赖 wmic，
+    # 而微软已在 Windows 11 24H2 / Server 2025 移除 wmic —— windows-latest 现在是
+    # Server 2025，跑起来直接 FileNotFoundError [WinError 2]。
+    # wmic → psutil（psutil 本就是依赖，probe.py 的性能采样已在用）的替换是已知技术债，
+    # 见 README 的 Future Work。
+    runs-on: windows-2022
+
+    env:
+      # CI 里不调外部 LLM：强制走 Rule-only 诊断路径（确定性核心本来就不依赖网络）
+      SELFHEAL_NO_LLM: "1"
+      # Windows runner 默认编码是 cp1252，任何中文输出（单测 print、CLI 的 JSON）都会
+      # UnicodeEncodeError 直接失败 —— 强制 stdout/stderr 用 UTF-8
+      PYTHONIOENCODING: "utf-8"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 导入检查（确定性核心不得依赖 LLM 客户端）
+        run: python -c "import selfheal.state_machine, selfheal.policy, selfheal.executor, selfheal.verifier, selfheal.rule_diagnoser, selfheal.orchestrator; print('core import OK')"
+
+      - name: 单元测试（标准库 unittest）
+        # 审计数据写到 runner 临时目录，不落进工作区
+        # （runner 上下文在 job 级 env 不可用，只能放 step 级）
+        env:
+          SELFHEAL_AUDIT_DIR: ${{ runner.temp }}/selfheal-audit
+        run: python -m unittest discover -s tests -v
+
+      - name: CLI 冒烟（没有真实服务时也要给出结构化结果，而不是裸 traceback）
+        env:
+          SELFHEAL_AUDIT_DIR: ${{ runner.temp }}/selfheal-audit
+        shell: bash
+        run: |
+          set -e
+          python -m selfheal.cli services --json
+          python -m selfheal.cli status --json
+          python -m selfheal.cli incidents --last 5 --json

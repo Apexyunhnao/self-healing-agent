@@ -1,0 +1,8 @@
+# Local Service Self-Healing Agent — 运行依赖（Python 3.11+，标准库优先）
+# 安装：pip install -r requirements.txt
+httpx>=0.28.1
+PyYAML>=6.0.3
+psutil>=7.2.2
+
+# 测试（可选，项目用标准库 unittest 编写）
+# python -m unittest discover -s tests -v

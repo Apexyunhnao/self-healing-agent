@@ -1,0 +1,277 @@
+<!--
+  ============================================================
+  自愈 Agent · 轻量 Incident Dashboard（单文件，无外部依赖，不引 CDN）
+  ============================================================
+  用法：python -m selfheal.cli incidents --json 生成数据后刷新
+
+  数据源（按优先级）：
+    1. dashboard_data.js  —— 推荐。双击打开即可用：
+         python -m selfheal.cli dashboard-data
+    2. audit/incidents.jsonl + eval/eval_report.md
+       —— 用本地 HTTP 服务器打开时直接 fetch：
+         python -m http.server 8000  →  浏览器访问 http://127.0.0.1:8000/dashboard.html
+       （浏览器 file:// 协议会拦截对本地文件的 fetch，请走方案 1）
+
+  深色主题，纯前端（原生 JS + CSS）。file:// 双击 = 方案 1。
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自愈 Agent · Incident Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
+    --green: #3fb950; --red: #f85149; --orange: #d29922; --blue: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", -apple-system, "Segoe UI", sans-serif;
+    padding: 24px; line-height: 1.5;
+  }
+  header { display: flex; justify-content: space-between; align-items: baseline;
+           flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  h1 { font-size: 22px; color: #f0f6fc; }
+  h1 .dot { color: var(--green); }
+  .sub { color: var(--muted); font-size: 13px; }
+  .banner {
+    background: #1c2128; border: 1px solid var(--border); border-left: 4px solid var(--orange);
+    padding: 14px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px;
+  }
+  .banner code { background: #0d1117; padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+  .banner.hide { display: none; }
+
+  /* 指标卡 */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+             gap: 12px; margin-bottom: 24px; }
+  .card { background: var(--panel); border: 1px solid var(--border);
+          border-radius: 8px; padding: 14px 16px; }
+  .card .label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .card .value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .card .value.good { color: var(--green); } .card .value.bad { color: var(--red); }
+  .card .value.warn { color: var(--orange); }
+
+  /* Incident 列表 */
+  .incident { background: var(--panel); border: 1px solid var(--border);
+              border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .inc-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .inc-id { color: var(--muted); font-family: Consolas, monospace; font-size: 13px; }
+  .inc-svc { font-weight: 700; }
+  .badge { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge-ok { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid var(--green); }
+  .badge-bad { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid var(--red); }
+  .inc-act { font-size: 13px; color: var(--blue); }
+  .inc-dur { color: var(--muted); font-size: 12px; }
+  .inc-time { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .flow { font-family: Consolas, "Courier New", monospace; font-size: 13px;
+          word-break: break-all; }
+  .flow .st { padding: 1px 4px; border-radius: 4px; margin: 0 1px; }
+  .flow .arrow { color: var(--muted); }
+  .st-ok { color: var(--green); background: rgba(63,185,80,.12); }
+  .st-bad { color: var(--red); background: rgba(248,81,73,.12); }
+  .st-warn { color: var(--orange); background: rgba(210,153,34,.12); }
+  .st-neutral { color: var(--muted); }
+
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 24px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot">●</span> 自愈 Agent · Incident Dashboard</h1>
+  <div class="sub" id="sourceInfo">加载中…</div>
+</header>
+
+<div class="banner hide" id="banner"></div>
+
+<div class="metrics" id="metrics"></div>
+
+<div id="incidentList"></div>
+
+<footer>Local Service Self-Healing Agent · 确定性验证器宣布恢复 · 策略门守卫修复</footer>
+
+<!-- 方案 1 数据源：python -m selfheal.cli dashboard-data 生成（file:// 双击也能读） -->
+<script src="dashboard_data.js"></script>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+
+  const STAT_OK = new Set(["healthy", "recovered"]);
+  const STAT_BAD = new Set(["escalated", "awaiting_human", "quarantined"]);
+  const STAT_WARN = new Set(["degraded", "diagnosing", "policy_check",
+                             "repairing", "starting", "retry", "rolling_back"]);
+
+  function stateClass(s) {
+    if (STAT_OK.has(s)) return "st-ok";
+    if (STAT_BAD.has(s)) return "st-bad";
+    if (STAT_WARN.has(s)) return "st-warn";
+    return "st-neutral";
+  }
+
+  function parseJsonl(text) {
+    const rows = [];
+    for (const line of text.split("\n")) {
+      const t = line.trim();
+      if (!t) continue;
+      try { rows.push(JSON.parse(t)); } catch (e) { /* 跳过坏行 */ }
+    }
+    return rows;
+  }
+
+  function parseEvalMd(md) {
+    const names = ["检测率", "修复成功率", "正确处理率", "Unsafe Remediation Rate",
+                   "Verification Escape Rate", "误报率", "MTTR", "Mixed 修复"];
+    const metrics = {};
+    for (const line of md.split("\n")) {
+      const m = line.match(/^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/);
+      if (m && names.includes(m[1].trim())) metrics[m[1].trim()] = m[2].trim();
+    }
+    let generated = "";
+    const g = md.match(/- 生成时间:\s*(.+)/);
+    if (g) generated = g[1].trim();
+    return { metrics, generated };
+  }
+
+  function durationText(inc) {
+    const s = Date.parse(inc.started_at || "");
+    const e = Date.parse(inc.ended_at || "");
+    if (!s || !e || e < s) return "—";
+    const sec = Math.round((e - s) / 1000);
+    return sec + "s";
+  }
+
+  function finalStatus(inc) {
+    if (inc.ok) return "已恢复";
+    const path = inc.state_path || [];
+    const last = path[path.length - 1] || "";
+    if (last === "quarantined") return "已隔离";
+    if (last === "awaiting_human") return "升级人工";
+    return last || "FAIL";
+  }
+
+  function renderMetrics(evalInfo) {
+    const el = $("metrics");
+    if (!evalInfo || !evalInfo.metrics || Object.keys(evalInfo.metrics).length === 0) {
+      el.innerHTML = "";
+      return;
+    }
+    const m = evalInfo.metrics;
+    const cards = [
+      ["检测率", m["检测率"], "good"],
+      ["修复成功率", m["修复成功率"], m["修复成功率"] && m["修复成功率"].endsWith("100.0%") ? "good" : "warn"],
+      ["正确处理率", m["正确处理率"], "good"],
+      ["Unsafe Remediation", m["Unsafe Remediation Rate"] || "—",
+       (m["Unsafe Remediation Rate"] || "").includes("0.0%") ? "good" : "bad"],
+      ["Verification Escape", m["Verification Escape Rate"] || "—",
+       (m["Verification Escape Rate"] || "").includes("0.0%") ? "good" : "bad"],
+      ["误报率", m["误报率"] || "—",
+       (m["误报率"] || "").includes("0.0%") ? "good" : "bad"],
+      ["MTTR", m["MTTR"] || "—", "neutral"],
+    ];
+    el.innerHTML = cards.map(([label, value, cls]) =>
+      `<div class="card"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`
+    ).join("");
+  }
+
+  function renderIncident(inc, i) {
+    const path = inc.state_path || [];
+    const status = finalStatus(inc);
+    const cls = inc.ok ? "badge-ok" : "badge-bad";
+    const flow = path.length ? path.map((s) =>
+      `<span class="st ${stateClass(s)}">${s}</span>`).join('<span class="arrow"> → </span>')
+      : '<span class="st st-neutral">—</span>';
+    const act = inc.action ? `<span class="inc-act">${inc.action}</span>` : "";
+    return `<div class="incident">
+      <div class="inc-top">
+        <span class="inc-id">#${(inc.incident_id || "").slice(0, 8)}</span>
+        <span class="inc-svc">${inc.service || "?"}</span>
+        <span class="badge ${cls}">${status}</span>
+        ${act}
+        <span class="inc-dur">耗时 ${durationText(inc)}</span>
+      </div>
+      <div class="inc-time">${inc.started_at || ""} → ${inc.ended_at || ""}</div>
+      <div class="flow">${flow}</div>
+    </div>`;
+  }
+
+  function showNoData(msg) {
+    $("incidentList").innerHTML =
+      `<div class="empty"><p>${msg}</p></div>`;
+    $("metrics").innerHTML = "";
+  }
+
+  function render(data, sourceLabel, evalInfo) {
+    $("sourceInfo").textContent = "数据源: " + sourceLabel;
+    const incs = data.incidents || [];
+    renderMetrics(evalInfo || data.eval);
+    if (incs.length === 0) {
+      showNoData("暂无 Incident 记录。先跑一次评估或 CLI run 生成数据：<br>" +
+                 "<code>python -m selfheal.cli dashboard-data</code>");
+      return;
+    }
+    // 降噪：默认只展示最近 10 条，点「显示更多」再展开（总量仍限 50）
+    const PAGE = 10;
+    let shown = incs.slice(0, PAGE);
+    const listEl = $("incidentList");
+    listEl.innerHTML = shown.map(renderIncident).join("");
+    if (incs.length > PAGE) {
+      const more = document.createElement("button");
+      more.textContent = `显示更多（还有 ${incs.length - PAGE} 条）`;
+      more.style.cssText = "background:var(--panel);color:var(--accent);" +
+        "border:1px solid var(--border);padding:8px 16px;border-radius:6px;" +
+        "cursor:pointer;margin:8px 0 16px;font-size:13px;";
+      more.addEventListener("click", () => {
+        const rest = incs.slice(PAGE, 50).map(renderIncident).join("");
+        listEl.insertAdjacentHTML("beforeend", rest);
+        more.remove();
+      });
+      listEl.appendChild(more);
+    }
+  }
+
+  function showBanner(html) {
+    const b = $("banner");
+    b.innerHTML = html;
+    b.classList.remove("hide");
+  }
+
+  async function load() {
+    // 方案 1：dashboard_data.js（file:// 双击可用）
+    if (window.DASHBOARD_DATA) {
+      render(window.DASHBOARD_DATA, "dashboard_data.js（python -m selfheal.cli dashboard-data）");
+      return;
+    }
+    // 方案 2：直接 fetch audit/incidents.jsonl + eval/eval_report.md（HTTP 服务器下可用）
+    try {
+      const incResp = await fetch("audit/incidents.jsonl");
+      if (!incResp.ok) throw new Error("incidents 404");
+      const incText = await incResp.text();
+      const incidents = parseJsonl(incText);
+      let evalInfo = {};
+      try {
+        const evResp = await fetch("eval/eval_report.md");
+        if (evResp.ok) evalInfo = parseEvalMd(await evResp.text());
+      } catch (e) { /* 评估报告可选 */ }
+      render({ incidents }, "audit/incidents.jsonl", evalInfo);
+      return;
+    } catch (e) { /* 落到方案 3 */ }
+
+    // 方案 3：无数据
+    showNoData("暂无数据");
+    showBanner("浏览器无法直接读取本地文件。请二选一：<br>" +
+               "① <code>python -m selfheal.cli dashboard-data</code> 生成数据后<b>刷新</b>（双击打开即可）；<br>" +
+               "② 在项目根目录起本地服务器：<code>python -m http.server 8000</code>，访问 " +
+               "<code>http://127.0.0.1:8000/dashboard.html</code>。");
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
