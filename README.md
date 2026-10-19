@@ -2,6 +2,13 @@
 
 [![CI](https://github.com/Apexyunhnao/self-healing-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Apexyunhnao/self-healing-agent/actions/workflows/ci.yml)
 
+**场景**：3–10 人的小团队没有专职运维，开发机上跑着 HTTP 服务、消息网关、调试浏览器。
+服务挂了靠同事在群里喊、人 SSH 上去重启，中间还得先确认是不是自己改坏的。
+这个 Agent 持续探测 → 规则诊断根因 → **确定性策略门决定能不能修** → 执行白名单动作 →
+**验证器证明真的恢复** → 修不好重试，预算耗尽升级人工。全程状态机驱动，可审计、可回放。
+
+![监控面板](docs/screenshots/dashboard.png)
+
 > **LLM proposes. Policy decides. Deterministic verifier proves recovery.**
 >
 > LLM 可以提出修复建议，但只有确定性策略允许执行，只有确定性验证器可以宣布恢复。

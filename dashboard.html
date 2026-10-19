@@ -23,9 +23,9 @@
 <title>自愈 Agent · Incident Dashboard</title>
 <style>
   :root {
-    --bg: #0d1117; --panel: #161b22; --border: #30363d;
-    --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
-    --green: #3fb950; --red: #f85149; --orange: #d29922; --blue: #58a6ff;
+    --bg: #0b0d11; --panel: #12151c; --border: #303746;
+    --text: #eef1f5; --muted: #a6b0c0; --accent: #f2b84b;
+    --green: #5fd0a0; --red: #ff7a7a; --orange: #f2c94c; --blue: #f2b84b;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -35,14 +35,14 @@
   }
   header { display: flex; justify-content: space-between; align-items: baseline;
            flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-  h1 { font-size: 22px; color: #f0f6fc; }
+  h1 { font-size: 22px; color: #eef1f5; }
   h1 .dot { color: var(--green); }
   .sub { color: var(--muted); font-size: 13px; }
   .banner {
     background: #1c2128; border: 1px solid var(--border); border-left: 4px solid var(--orange);
     padding: 14px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px;
   }
-  .banner code { background: #0d1117; padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+  .banner code { background: #0b0d11; padding: 2px 6px; border-radius: 4px; color: var(--accent); }
   .banner.hide { display: none; }
 
   /* 指标卡 */
@@ -78,6 +78,77 @@
 
   .empty { color: var(--muted); text-align: center; padding: 40px 0; }
   footer { color: var(--muted); font-size: 12px; margin-top: 24px; text-align: center; }
+
+  /* ===== 统一主题覆盖层（顾问规范 2026-09-20 · 纯样式，删除本块即还原）===== */
+  body { background:radial-gradient(1100px 520px at 82% -8%, rgba(242,184,75, .10), transparent 62%), var(--bg); }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:#262c38; border-radius:8px; border:3px solid transparent; background-clip:content-box; }
+  ::-webkit-scrollbar-thumb:hover { background:#333a48; background-clip:content-box; }
+  ::selection { background:rgba(242,184,75, .30); }
+  .panel, .turn, .composer, .login-card, .card { border:1px solid var(--border); }
+
+/* ---- 交互手感（纯 CSS · 全部 ≤220ms · 遵循系统"减少动态效果"）---- */
+  .btn-primary, .chip, .nav-item, .panel, .turn, .item, .li, tr, .card, input, textarea {
+    transition: background .18s cubic-bezier(.22,1,.36,1), color .18s cubic-bezier(.22,1,.36,1),
+                border-color .18s cubic-bezier(.22,1,.36,1), transform .18s cubic-bezier(.22,1,.36,1),
+                box-shadow .18s cubic-bezier(.22,1,.36,1);
+  }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+  .btn-primary:active:not(:disabled) { transform: translateY(1px) scale(.995); }
+  .chip:hover { transform: translateY(-1px); }
+  .nav-item:hover { transform: translateX(2px); }
+  .turn { animation: turnIn .22s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes turnIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+  .panel:hover, .card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+  .item:hover, li.clickable:hover, tbody tr:hover { background: rgba(255,255,255,.035); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:10px; }
+  input:focus, textarea:focus { border-color: var(--accent); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; }
+  }
+
+  /* ===== 交互升级（2026-09-20 · 点 incident 展开决策链）===== */
+  .incident { cursor:pointer; transition:border-color .18s cubic-bezier(.22,1,.36,1), background .18s cubic-bezier(.22,1,.36,1); }
+  .incident:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: rgba(255,255,255,.03); }
+  .incident.open { border-color: var(--accent); }
+  .inc-hint { font-size:11.5px; color:var(--muted); margin-left:auto; }
+  .chain { margin-top:12px; padding:12px 14px; border-radius:12px; background:var(--bg);
+           border:1px solid var(--border); border-left:3px solid var(--accent);
+           animation:chainIn .24s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes chainIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+  .chain-title { font-size:12.5px; color:var(--muted); margin-bottom:10px; letter-spacing:.3px; }
+  .chain-step { position:relative; padding:0 0 12px 22px; }
+  .chain-step::before { content:""; position:absolute; left:5px; top:5px; bottom:-2px; width:1px; background:var(--border); }
+  .chain-step:last-child::before { display:none; }
+  .chain-step .dot { position:absolute; left:0; top:4px; width:11px; height:11px; border-radius:50%;
+                     background:var(--panel); border:2px solid var(--accent); }
+  .chain-step.deny .dot { border-color:var(--red); }
+  .chain-step .t { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .chain-step .a { font-weight:650; margin-left:8px; }
+  .chain-step .d { font-size:12.5px; color:var(--text); opacity:.85; margin-top:3px; white-space:pre-wrap; }
+  .chain-empty { font-size:12.5px; color:var(--muted); }
+  @media (prefers-reduced-motion: reduce) { .chain, .incident { animation:none !important; transition:none !important; } }
+
+  /* ---------- Rule vs LLM 对比（项目核心结论） ---------- */
+  .compare{margin:22px 0 10px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px 22px}
+  .compare h2{font-size:14px; font-weight:600; color:var(--text)}
+  .compare .note{font-size:12px; color:var(--muted); margin-top:5px; line-height:1.6}
+  .cmp{margin-top:16px; display:flex; flex-direction:column; gap:16px}
+  .cmp-row{display:grid; grid-template-columns:92px 1fr 52px; gap:14px; align-items:center}
+  .cmp-k{font-size:12.5px; color:var(--muted)}
+  .cmp-b{display:flex; flex-direction:column; gap:5px}
+  .cmp-line{display:grid; grid-template-columns:34px 1fr 104px; gap:9px; align-items:center}
+  .cmp-line .who{font-size:11px; color:var(--faint); font-family:ui-monospace,Consolas,monospace}
+  .cmp-line .track{height:8px; border-radius:4px; background:#1b202b; overflow:hidden}
+  .cmp-line .track i{display:block; height:100%; border-radius:4px}
+  .cmp-line.rule .track i{background:#5a6376}
+  .cmp-line.llm .track i{background:var(--accent)}
+  .cmp-line .val{font-size:11.5px; font-family:ui-monospace,Consolas,monospace; color:var(--muted); text-align:right; white-space:nowrap}
+  .cmp-delta{font-size:12px; font-family:ui-monospace,Consolas,monospace; text-align:right}
+  .cmp-delta.up{color:var(--red)}
+  .cmp-delta.flat{color:var(--muted)}
+  .cmp-verdict{margin-top:16px; padding-top:14px; border-top:1px solid var(--border); font-size:12.5px; color:var(--muted); line-height:1.75}
+  .cmp-verdict b{color:var(--accent); font-weight:600}
 </style>
 </head>
 <body>
@@ -89,6 +160,9 @@
 <div class="banner hide" id="banner"></div>
 
 <div class="metrics" id="metrics"></div>
+<div class="note" style="font-size:12px;color:var(--muted);margin:-6px 0 0">上方指标来自 eval 报告的 LLM + fallback 模式；Rule-only 是推荐运行方式，差异见下方对比区。</div>
+
+<div class="compare" id="compare"></div>
 
 <div id="incidentList"></div>
 
@@ -172,11 +246,44 @@
        (m["Verification Escape Rate"] || "").includes("0.0%") ? "good" : "bad"],
       ["误报率", m["误报率"] || "—",
        (m["误报率"] || "").includes("0.0%") ? "good" : "bad"],
-      ["MTTR", m["MTTR"] || "—", "neutral"],
+      ["MTTR 均值", (m["MTTR"] || "—").split(" / ")[0], "neutral",
+       "完整：均值 / 中位 / 分位 —— " + (m["MTTR"] || "—")],
     ];
-    el.innerHTML = cards.map(([label, value, cls]) =>
-      `<div class="card"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`
+    el.innerHTML = cards.map(([label, value, cls, title]) =>
+      `<div class="card"${title ? ` title="${title}"` : ""}><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`
     ).join("");
+  }
+
+  /* Rule vs LLM 对比：数据来源 eval/eval_report.json（2026-09-10，seed=42，全量 35 场景含盲评）。
+     唯一真源是那个 JSON —— 重跑 eval 后要同步这里的数字。 */
+  const CMP_DATA = [
+    { k: "修复成功率", rule: "17/28 = 60.7%", rulePct: 60.7, llm: "18/28 = 64.3%", llmPct: 64.3, delta: "+4pp", cls: "up" },
+    { k: "MTTR 均值", rule: "5.1s", rulePct: Math.round(5.1 / 7 * 100), llm: "6.3s", llmPct: Math.round(6.3 / 7 * 100), delta: "+1.2s", cls: "up" },
+    { k: "正确处理率", rule: "28/28 = 100%", rulePct: 100, llm: "28/28 = 100%", llmPct: 100, delta: "持平", cls: "flat" },
+    { k: "Unsafe 修复", rule: "0/34", rulePct: 0, llm: "0/36", llmPct: 0, delta: "持平", cls: "flat" }
+  ];
+
+  function renderCompare() {
+    const el = $("compare");
+    if (!el) return;
+    el.innerHTML = `
+      <h2>LLM 增量价值：同一测试集，Rule-only vs LLM + fallback</h2>
+      <div class="note">28 个有效故障 + 6 个非故障基线（含 6 个盲评）· 固定种子 42 · 数字唯一来源 eval/eval_report.json</div>
+      <div class="cmp">${CMP_DATA.map((r) => `
+        <div class="cmp-row">
+          <div class="cmp-k">${r.k}</div>
+          <div class="cmp-b">
+            <div class="cmp-line rule"><span class="who">Rule</span><span class="track"><i style="width:${r.rulePct}%"></i></span><span class="val">${r.rule}</span></div>
+            <div class="cmp-line llm"><span class="who">LLM</span><span class="track"><i style="width:${r.llmPct}%"></i></span><span class="val">${r.llm}</span></div>
+          </div>
+          <div class="cmp-delta ${r.cls}">${r.delta}</div>
+        </div>`).join("")}
+      </div>
+      <div class="cmp-verdict">
+        LLM 唯一多修好的场景是 <b>log_flood_16（日志暴涨）</b>——它从日志语义判断是日志撑爆而不是磁盘问题；
+        Rule 只看磁盘指标正常就升级人工。但正确处理率持平、MTTR 慢 1.2s、每次调用还有成本
+        ⇒ <b>推荐 Rule-only 运行，LLM 保留为可选诊断组件</b>。
+      </div>`;
   }
 
   function renderIncident(inc, i) {
@@ -187,13 +294,14 @@
       `<span class="st ${stateClass(s)}">${s}</span>`).join('<span class="arrow"> → </span>')
       : '<span class="st st-neutral">—</span>';
     const act = inc.action ? `<span class="inc-act">${inc.action}</span>` : "";
-    return `<div class="incident">
+    return `<div class="incident" data-inc="${inc.incident_id || ""}" data-i="${i}" role="button" tabindex="0" aria-expanded="false">
       <div class="inc-top">
         <span class="inc-id">#${(inc.incident_id || "").slice(0, 8)}</span>
         <span class="inc-svc">${inc.service || "?"}</span>
         <span class="badge ${cls}">${status}</span>
         ${act}
         <span class="inc-dur">耗时 ${durationText(inc)}</span>
+        <span class="inc-hint">点击查看决策链 ▾</span>
       </div>
       <div class="inc-time">${inc.started_at || ""} → ${inc.ended_at || ""}</div>
       <div class="flow">${flow}</div>
@@ -210,6 +318,7 @@
     $("sourceInfo").textContent = "数据源: " + sourceLabel;
     const incs = data.incidents || [];
     renderMetrics(evalInfo || data.eval);
+    renderCompare();
     if (incs.length === 0) {
       showNoData("暂无 Incident 记录。先跑一次评估或 CLI run 生成数据：<br>" +
                  "<code>python -m selfheal.cli dashboard-data</code>");
@@ -218,6 +327,7 @@
     // 降噪：默认只展示最近 10 条，点「显示更多」再展开（总量仍限 50）
     const PAGE = 10;
     let shown = incs.slice(0, PAGE);
+    window.__POLICY = data.policy || [];
     const listEl = $("incidentList");
     listEl.innerHTML = shown.map(renderIncident).join("");
     if (incs.length > PAGE) {
@@ -232,6 +342,43 @@
         more.remove();
       });
       listEl.appendChild(more);
+    }
+    // 点击展开/收起决策链（事件委托，只绑一次）
+    if (!listEl.__bound) {
+      listEl.__bound = true;
+      const toggle = (el) => {
+        const incId = el.getAttribute("data-inc");
+        const next = el.nextElementSibling;
+        if (el.classList.contains("open") && next && next.classList.contains("chain")) {
+          next.remove(); el.classList.remove("open");
+          el.setAttribute("aria-expanded", "false");
+          return;
+        }
+        el.classList.add("open"); el.setAttribute("aria-expanded", "true");
+        const rows = (window.__POLICY || []).filter((p) => !incId || p.incident_id === incId);
+        const S = rows.slice().sort((a, b) => String(a.ts || "").localeCompare(String(b.ts || "")));
+        const body = S.length ? S.map((p) => {
+          const deny = p.allowed === false;
+          const conf = (p.confidence === undefined || p.confidence === null) ? "" :
+            `置信度 ${typeof p.confidence === "number" ? p.confidence.toFixed(2) : p.confidence}`;
+          return `<div class="chain-step ${deny ? "deny" : ""}">
+            <span class="dot"></span>
+            <span class="t">${(p.ts || "").slice(11, 19)}</span>
+            <span class="a">${deny ? "策略门拒绝" : "允许执行"} · ${p.action || "?"}</span>
+            <div class="d">${conf ? conf + "｜" : ""}根因：${p.root_cause || "-"}
+理由：${p.reason || "-"}</div>
+          </div>`;
+        }).join("") : '<div class="chain-empty">这条 incident 没有策略门记录（可能是确定性验证器直接处理）</div>';
+        el.insertAdjacentHTML("afterend",
+          `<div class="chain"><div class="chain-title">决策链回放 · 来自 policy 审计（${S.length} 条）</div>${body}</div>`);
+      };
+      listEl.addEventListener("click", (e) => {
+        const el = e.target.closest(".incident"); if (el) toggle(el);
+      });
+      listEl.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        const el = e.target.closest(".incident"); if (el) { e.preventDefault(); toggle(el); }
+      });
     }
   }
 
